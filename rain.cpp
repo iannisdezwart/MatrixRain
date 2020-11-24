@@ -5,6 +5,9 @@
 
 // Change these settings to your liking
 
+#define DESIRED_FPS 15
+#define SHOW_FPS_COUNTER true
+
 #define MIN_RAIN_STREAM_LENGTH 10
 #define MAX_RAIN_STREAM_LENGTH 35
 #define RAIN_STREAM_SPAWN_CHANCE 0.015
@@ -13,6 +16,10 @@
 
 #define FIRST_RAINDROP_COLOUR 255, 255, 255
 #define RAINDROP_COLOUR(intensity) 0, 255 * intensity, 0
+
+// Uncomment the below code for a green to blue gradient
+
+// #define RAINDROP_COLOUR(intensity) 0, 128 + 127 * intensity, 255 - 255 * intensity
 
 // Uncomment the below code for an RGB effect
 
@@ -82,49 +89,91 @@ void update_rain()
 	}
 }
 
-void render_frame()
+chrono::nanoseconds render_frame()
 {
-	// Clear screen
+	// Keep track of the starting time
 
-	printf("\033[H\033[2J");
+	auto starting_time = chrono::high_resolution_clock::now();
 
-	// Render frame
+	// Render the frame
 
 	int width = rain_streams.size();
 	int height = rain_streams[0].size();
+
+	gui::Frame frame(width, height);
 
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
 			RainDrop& rain_drop = rain_streams[x][y];
 
-			gui::set_background_colour_rgb(BACKGROUND_COLOUR);
-			gui::set_graphic_rendition({ BOLD });
+			frame.set_background_colour_rgb(BACKGROUND_COLOUR);
+			frame.set_graphic_rendition({ BOLD });
 
 			if (rain_drop.remaining_time > 0) {
 				// Render character
 
 				if (rain_drop.remaining_time == rain_drop.length) {
-					gui::set_foreground_colour_rgb(FIRST_RAINDROP_COLOUR);
+					frame.set_foreground_colour_rgb(FIRST_RAINDROP_COLOUR);
 				} else {
 					double intensity = (double) rain_drop.remaining_time / (double) rain_drop.length;
 
-					gui::set_foreground_colour_rgb(RAINDROP_COLOUR(intensity));
+					frame.set_foreground_colour_rgb(RAINDROP_COLOUR(intensity));
 				}
 
-				printf("%s", chars[rain_drop.char_index].c_str());
+				frame.put(chars[rain_drop.char_index]);
 			} else {
 				// Put a space
 
-				printf(" ");
+				frame.put(" ");
 			}
 
-			gui::set_graphic_rendition({ RESET });
+			frame.set_graphic_rendition({ RESET });
 		}
 
 		// Move to the next line
 
-		printf("\n");
+		frame.put("\n");
 	}
+
+	// FPS counter
+
+	if (SHOW_FPS_COUNTER) {
+		auto elapsed_time = chrono::high_resolution_clock::now() - starting_time;
+		auto duration = chrono::duration_cast<chrono::nanoseconds>(elapsed_time);
+		double fps = 1E9 / (double) duration.count();
+
+		// Remove the previous FPS counter
+
+		frame.erase_current_line();
+
+		// Put the new FPS counter
+
+		frame.set_background_colour_rgb(23, 106, 173);
+		frame.set_foreground_colour_rgb(255, 255, 255);
+		frame.set_graphic_rendition({ BOLD });
+
+		frame.put(" Potential FPS = " + to_string(fps).substr(0, 5) + " ");
+		frame.put(
+			" Actual FPS = "
+			+ to_string(min(fps, (double) DESIRED_FPS)).substr(0, 5) + " "
+		);
+
+		frame.set_graphic_rendition({ RESET });
+
+		frame.put("\n");
+
+		// Fixes visual artefacts when sizing down
+
+		frame.erase_current_line();
+	}
+
+	// Display the frame
+
+	frame.display();
+
+	// Return the total elapsed time of this whole function call
+
+	return chrono::high_resolution_clock::now() - starting_time;
 }
 
 void initialise_rain_streams(uint16_t cols, uint16_t rows)
@@ -162,12 +211,27 @@ void handle_window_size_change()
 	uint16_t rows = window_size.ws_row;
 
 	if (last_known_cols != cols || last_known_rows != rows) {
-		last_known_cols = cols;
-		last_known_rows = rows;
+		uint16_t vertical_resize = rows - last_known_rows;
+
+		if (vertical_resize > 0) {
+			// Scroll down
+
+			printf("\x1b[%dT\n", vertical_resize);
+		} else {
+			// Scroll up
+
+			printf("\x1b[%dS\n", vertical_resize);
+		}
 
 		// Reinitialise the rain streams
+		// Make space for the FPS counter if it is enabled
 
-		initialise_rain_streams(cols, rows - 1);
+		initialise_rain_streams(cols, rows - 1 - SHOW_FPS_COUNTER);
+
+		// Update the last_known_cols and last_known_rows
+
+		last_known_cols = cols;
+		last_known_rows = rows;
 	}
 }
 
@@ -178,7 +242,11 @@ int main()
 	while (true) {
 		handle_window_size_change();
 		update_rain();
-		render_frame();
-		this_thread::sleep_for(70ms);
+		chrono::nanoseconds duration = render_frame();
+
+		auto desired_refresh_time = chrono::nanoseconds((int) 1E9 / DESIRED_FPS);
+		auto sleep = max(desired_refresh_time - duration, (chrono::nanoseconds) 0);
+
+		this_thread::sleep_for(sleep);
 	}
 }
