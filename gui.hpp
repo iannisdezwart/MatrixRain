@@ -106,6 +106,22 @@ namespace gui {
 		printf("\x1b[48;2;%hhu;%hhu;%hhum", r, g, b);
 	}
 
+	void set_foreground_colour_rgb(uint32_t rgb)
+	{
+		uint8_t r = (rgb & 0x00ff0000) >> 16;
+		uint8_t g = (rgb & 0x0000ff00) >> 8;
+		uint8_t b = (rgb & 0x000000ff);
+		printf("\x1b[38;2;%hhu;%hhu;%hhum", r, g, b);
+	}
+
+	void set_background_colour_rgb(uint32_t rgb)
+	{
+		uint8_t r = (rgb & 0x00ff0000) >> 16;
+		uint8_t g = (rgb & 0x0000ff00) >> 8;
+		uint8_t b = (rgb & 0x000000ff);
+		printf("\x1b[48;2;%hhu;%hhu;%hhum", r, g, b);
+	}
+
 	void move_cursor(uint16_t x, uint16_t y)
 	{
 		printf("\x1b[%hu;%huH", y + 1, x + 1);
