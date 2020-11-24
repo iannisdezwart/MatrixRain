@@ -3,6 +3,17 @@
 #include "random.hpp"
 #include "gui.hpp"
 
+// Change these settings to your liking
+
+#define MIN_RAIN_STREAM_LENGTH 5
+#define MAX_RAIN_STREAM_LENGTH 35
+#define RAIN_STREAM_SPAWN_CHANCE 0.015
+
+#define BACKGROUND_COLOUR 0, 0, 0
+
+#define FIRST_RAINDROP_COLOUR 255, 255, 255
+#define RAINDROP_COLOUR(intensity) 0, 255 * intensity, 0
+
 vector<string> chars = {
 	"\uff66", "\uff67", "\uff68", "\uff69", "\uff6a", "\uff6b", "\uff6c",
 	"\uff6d", "\uff6e", "\uff6f", "\uff70", "\uff71", "\uff72", "\uff73",
@@ -51,10 +62,10 @@ void update_rain()
 		RainDrop& rain_drop = rain_streams[x][0];
 
 		if (rain_drop.remaining_time == 0) {
-			if (random_float() < 0.015) {
+			if (random_float() < RAIN_STREAM_SPAWN_CHANCE) {
 				// Start this rain stream
 
-				int length = random_int(5, 20);
+				int length = random_int(MIN_RAIN_STREAM_LENGTH, MAX_RAIN_STREAM_LENGTH);
 
 				rain_drop.char_index = random_int(0, chars.size() - 1);
 				rain_drop.remaining_time = length;
@@ -81,18 +92,18 @@ void render_frame()
 		for (int x = 0; x < width; x++) {
 			RainDrop& rain_drop = rain_streams[x][y];
 
-			gui::set_background_colour_rgb(0, 0, 0);
+			gui::set_background_colour_rgb(BACKGROUND_COLOUR);
 			gui::set_graphic_rendition({ BOLD });
 
 			if (rain_drop.remaining_time > 0) {
 				// Render character
 
 				if (rain_drop.remaining_time == rain_drop.length) {
-					gui::set_foreground_colour_rgb(255, 255, 255);
+					gui::set_foreground_colour_rgb(FIRST_RAINDROP_COLOUR);
 				} else {
 					double intensity = (double) rain_drop.remaining_time / (double) rain_drop.length;
 
-					gui::set_foreground_colour_rgb(0, 50 + 205 * intensity, 0);
+					gui::set_foreground_colour_rgb(RAINDROP_COLOUR(intensity));
 				}
 
 				printf("%s", chars[rain_drop.char_index].c_str());
@@ -163,6 +174,6 @@ int main()
 		handle_window_size_change();
 		update_rain();
 		render_frame();
-		this_thread::sleep_for(100ms);
+		this_thread::sleep_for(70ms);
 	}
 }
