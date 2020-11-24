@@ -34,7 +34,7 @@ uint64_t random_int()
 uint64_t random_int(uint64_t lower_bound, uint64_t upper_bound)
 {
 	uint64_t random = random_int_generator.generate();
-	return (random % (upper_bound - lower_bound)) + lower_bound;
+	return (random % (upper_bound - lower_bound + 1)) + lower_bound;
 }
 
 class RandomFloatGenerator {
