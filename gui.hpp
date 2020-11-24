@@ -63,7 +63,6 @@ using namespace std;
 #define BRIGHT_WHITE_BG 107
 
 namespace gui {
-
 	struct winsize get_window_size()
 	{
 		// Request window size
@@ -74,58 +73,95 @@ namespace gui {
 		return window_size;
 	}
 
-	void clear()
-	{
-		// Clear entire screen
+	class Frame {
+		public:
+			string buffer;
+			uint16_t width, height;
 
-		printf("\x1b[H\x1b[2J");
-	}
+			Frame(uint16_t width, uint16_t height)
+			{
+				this->width = width;
+				this->height = height;
 
-	void put(string str, uint16_t x, uint16_t y)
-	{
-		// Move to (x, y)
+				for (int y = 0; y < height; y++) {
+					for (int x = 0; x < height; x++) {
+						buffer.push_back(0);
+					}
+				}
+			}
 
-		printf("\x1b[%hu;%huH", y + 1, x + 1);
-		cout << str;
-	}
+			void put(string str)
+			{
+				buffer += str;
+			}
 
-	void set_graphic_rendition(initializer_list<uint8_t> graphic_rendition_codes)
-	{
-		for (uint8_t graphic_rendition_code : graphic_rendition_codes) {
-			printf("\x1b[%hhum", graphic_rendition_code);
-		}
-	}
+			void put(string str, uint16_t x, uint16_t y)
+			{
+				move_cursor(x, y);
+				put(str);
+			}
 
-	void set_foreground_colour_rgb(uint8_t r, uint8_t g, uint8_t b)
-	{
-		printf("\x1b[38;2;%hhu;%hhu;%hhum", r, g, b);
-	}
+			void display()
+			{
+				// Clear entire screen
 
-	void set_background_colour_rgb(uint8_t r, uint8_t g, uint8_t b)
-	{
-		printf("\x1b[48;2;%hhu;%hhu;%hhum", r, g, b);
-	}
+				printf("\x1b[H");
 
-	void set_foreground_colour_rgb(uint32_t rgb)
-	{
-		uint8_t r = (rgb & 0x00ff0000) >> 16;
-		uint8_t g = (rgb & 0x0000ff00) >> 8;
-		uint8_t b = (rgb & 0x000000ff);
-		printf("\x1b[38;2;%hhu;%hhu;%hhum", r, g, b);
-	}
+				// Write the buffer to stdout
 
-	void set_background_colour_rgb(uint32_t rgb)
-	{
-		uint8_t r = (rgb & 0x00ff0000) >> 16;
-		uint8_t g = (rgb & 0x0000ff00) >> 8;
-		uint8_t b = (rgb & 0x000000ff);
-		printf("\x1b[48;2;%hhu;%hhu;%hhum", r, g, b);
-	}
+				cout << buffer;
+			}
 
-	void move_cursor(uint16_t x, uint16_t y)
-	{
-		printf("\x1b[%hu;%huH", y + 1, x + 1);
-	}
+			void set_graphic_rendition(initializer_list<uint8_t> graphic_rendition_codes)
+			{
+				for (uint8_t graphic_rendition_code : graphic_rendition_codes) {
+					buffer += "\x1b["
+						+ to_string(graphic_rendition_code) + "m";
+				};
+			}
+
+			void set_foreground_colour_rgb(uint8_t r, uint8_t g, uint8_t b)
+			{
+				buffer += "\x1b[38;2;"
+					+ to_string(r) + ";"
+					+ to_string(g) + ";"
+					+ to_string(b) + "m";
+			}
+
+			void set_background_colour_rgb(uint8_t r, uint8_t g, uint8_t b)
+			{
+				buffer += "\x1b[48;2;"
+					+ to_string(r) + ";"
+					+ to_string(g) + ";"
+					+ to_string(b) + "m";
+			}
+
+			void set_foreground_colour_rgb(uint32_t rgb)
+			{
+				uint8_t r = (rgb & 0x00ff0000) >> 16;
+				uint8_t g = (rgb & 0x0000ff00) >> 8;
+				uint8_t b = (rgb & 0x000000ff);
+				set_foreground_colour_rgb(r, g, b);
+			}
+
+			void set_background_colour_rgb(uint32_t rgb)
+			{
+				uint8_t r = (rgb & 0x00ff0000) >> 16;
+				uint8_t g = (rgb & 0x0000ff00) >> 8;
+				uint8_t b = (rgb & 0x000000ff);
+				set_background_colour_rgb(r, g, b);
+			}
+
+			void move_cursor(uint16_t x, uint16_t y)
+			{
+				buffer += "\x1b[" + to_string(y) + ";" + to_string(x) + "H";
+			}
+
+			void erase_current_line()
+			{
+				buffer += "\x1b[K";
+			}
+	};
 };
 
 #endif
