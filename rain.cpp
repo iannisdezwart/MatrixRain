@@ -5,7 +5,7 @@
 
 // Change these settings to your liking
 
-#define MIN_RAIN_STREAM_LENGTH 5
+#define MIN_RAIN_STREAM_LENGTH 10
 #define MAX_RAIN_STREAM_LENGTH 35
 #define RAIN_STREAM_SPAWN_CHANCE 0.015
 
@@ -13,6 +13,11 @@
 
 #define FIRST_RAINDROP_COLOUR 255, 255, 255
 #define RAINDROP_COLOUR(intensity) 0, 255 * intensity, 0
+
+// Uncomment the below code for an RGB effect
+
+// #include "hue-to-rgb.hpp"
+// #define RAINDROP_COLOUR(intensity) hue_to_rgb(intensity)
 
 vector<string> chars = {
 	"\uff66", "\uff67", "\uff68", "\uff69", "\uff6a", "\uff6b", "\uff6c",
